@@ -91,16 +91,18 @@ class TaskController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'status_id' => 'sometimes|required|exists:task_statuses,id',
-            'priority_id' => 'sometimes|required|exists:priorities,id',
-            'user_ids' => 'array',
-            'user_ids.*' => 'exists:users,id',
+            'priority_id' => 'required|int',
+            'users' => 'array', // IDs de usuarios asignados
+            'users.*.id' => 'exists:users,id', // Validar que cada usuario tenga un ID válido
+
         ]);
 
         $task->update($request->only('title', 'description', 'status_id', 'priority_id'));
 
         // Actualizar usuarios asignados
-        if ($request->has('user_ids')) {
-            $task->users()->sync($request->user_ids);
+        if ($request->has('users')) {
+            $userIds = collect($request->users)->pluck('id')->toArray();
+            $task->users()->sync($userIds);
         }
 
         return response()->json($task);
