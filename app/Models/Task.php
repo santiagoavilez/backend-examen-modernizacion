@@ -26,7 +26,6 @@ class Task extends Model
     // Relación: una tarea puede estar asignada a varios usuarios
     public function users()
     {
-        return $this->belongsToMany(User::class, 'task_user', 'task_id', 'user_id')
-            ->withTimestamps();
+        return $this->belongsToMany(User::class, 'task_user', 'task_id', 'user_id');
     }
 }

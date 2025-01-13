@@ -18,13 +18,13 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
-            'password' => bcrypt('password'),
+            'password' => bcrypt('1234'),
         ],);
 
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => bcrypt('password'),
+            'password' => bcrypt('1234'),
 
         ],);
 
@@ -32,11 +32,15 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Standar User',
             'email' => 'standar@example.com',
+            'password' => bcrypt('1234'),
+
         ],);
 
         User::factory()->create([
-            'name' => 'example User',
+            'name' => 'Example User',
             'email' => 'example@example.com',
+            'password' => bcrypt('1234'),
+
         ],);
 
         DB::table('roles')->insert([

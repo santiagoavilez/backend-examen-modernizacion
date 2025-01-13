@@ -10,11 +10,25 @@ class TaskController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $tasks = Task::with(['status', 'priority', 'users'])->get();
+        $userRoleId = $request->query('userRoleId');
+        $userId = $request->query('userId');
+        $isAdmin = $userRoleId == 1;
+
+        if ($isAdmin) {
+            // Si es administrador, retornar todas las tareas
+            $tasks = Task::with(['status', 'priority', 'users'])->get();
+        } else {
+            // Si es un usuario estándar, retornar solo las tareas asignadas al usuario
+            $tasks = Task::whereHas('users', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })->with(['status', 'priority', 'users'])->get();
+        }
         return response()->json($tasks);
     }
+
+
 
     /**
      * Show the form for creating a new resource.
@@ -32,20 +46,21 @@ class TaskController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status_id' => 'required|exists:task_statuses,id',
-            'priority_id' => 'required|exists:priorities,id',
-            'user_ids' => 'array', // IDs de usuarios asignados
-            'user_ids.*' => 'exists:users,id',
+            'priority_id' => 'required|int',
+            'users' => 'array', // IDs de usuarios asignados
+            'users.*.id' => 'exists:users,id', // Validar que cada usuario tenga un ID válido
+
         ]);
 
-        $task = Task::create($request->only('title', 'description', 'status_id', 'priority_id'));
+        $task = Task::create($request->only('title', 'description', 'priority_id'));
 
         // Asignar usuarios a la tarea
-        if ($request->has('user_ids')) {
-            $task->users()->sync($request->user_ids);
+        if ($request->has('users')) {
+            $userIds = collect($request->users)->pluck('id')->toArray();
+            $task->users()->sync($userIds);
         }
 
-        return response()->json($task, 201);
+        return response()->json($task, 200);
     }
 
     /**
