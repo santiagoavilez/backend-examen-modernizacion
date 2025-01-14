@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
 {
@@ -18,12 +19,18 @@ class TaskController extends Controller
 
         if ($isAdmin) {
             // Si es administrador, retornar todas las tareas
-            $tasks = Task::with(['status', 'priority', 'users'])->get();
+            $tasks = Task::with(['status', 'priority', 'users' => function ($query) {
+                $query->select('users.id', 'users.name', 'users.email')
+                    ->addSelect(['is_complete' => 'task_user.is_completed']);
+            }])->get();
         } else {
             // Si es un usuario estándar, retornar solo las tareas asignadas al usuario
             $tasks = Task::whereHas('users', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
-            })->with(['status', 'priority', 'users'])->get();
+            })->with(['status', 'priority', 'users' => function ($query) {
+                $query->select('users.id', 'users.name', 'users.email')
+                    ->addSelect(['is_completed' => 'task_user.is_completed']);
+            }])->get();
         }
         return response()->json($tasks);
     }
@@ -90,20 +97,37 @@ class TaskController extends Controller
         $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'status_id' => 'sometimes|required|exists:task_statuses,id',
             'priority_id' => 'required|int',
             'users' => 'array', // IDs de usuarios asignados
             'users.*.id' => 'exists:users,id', // Validar que cada usuario tenga un ID válido
 
         ]);
 
-        $task->update($request->only('title', 'description', 'status_id', 'priority_id'));
+        $task->update($request->only('title', 'description',  'priority_id'));
 
         // Actualizar usuarios asignados
         if ($request->has('users')) {
             $userIds = collect($request->users)->pluck('id')->toArray();
             $task->users()->sync($userIds);
         }
+
+        // Verificar el estado actual de la tarea según el progreso de los usuarios
+        $taskUsers = DB::table('task_user')->where('task_id', $task->id)->get();
+
+        $allCompleted = $taskUsers->every(fn($user) => $user->is_completed);
+        $anyCompleted = $taskUsers->contains(fn($user) => $user->is_completed);
+
+        // Determinar el nuevo estado de la tarea
+        if ($allCompleted) {
+            $newStatus = 3; // Completada
+        } elseif ($anyCompleted) {
+            $newStatus = 2; // En Progreso
+        } else {
+            $newStatus = 1; // Pendiente
+        }
+
+        // Actualizar el estado de la tarea en la base de datos
+        $task->update(['status_id' => $newStatus]);
 
         return response()->json($task);
     }

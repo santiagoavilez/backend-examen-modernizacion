@@ -9,6 +9,6 @@ class UserTask extends Model
 {
     use HasFactory;
 
-    protected $table = 'user_task'; // Especificamos la tabla pivote
-    protected $fillable = ['user_id', 'task_id'];
+    protected $table = 'task_user'; // Especificamos la tabla pivote
+    protected $fillable = ['user_id', 'task_id', 'is_completed'];
 }

@@ -11,6 +11,7 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 });
 
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TaskUserController;
 use App\Http\Controllers\UserController;
 
 Route::controller(TaskController::class)->group(function () {
@@ -20,6 +21,8 @@ Route::controller(TaskController::class)->group(function () {
     Route::put('tasks/{id}', 'update');
     Route::delete('tasks/{id}', 'destroy');
 });
+
+Route::post('/tasks/{taskId}/toggle-completion', [TaskUserController::class, 'toggleTaskCompletion']);
 
 
 Route::get('users', [UserController::class, 'index']);
